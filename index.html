@@ -1,0 +1,255 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Dank Duels</title>
+    <style>
+      html {
+        height: 100%;
+      }
+      body {
+        background-color: rgb(0, 255, 255);
+        background-image: linear-gradient(rgb(0, 255, 0), rgb(0, 0, 255));
+        height: 100%;
+        margin: 0;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        overflow: hidden;
+      }
+      #StartForm {
+        text-align: center;
+        position: absolute;
+        height: 100px;
+      }
+      #GameId {
+        font-size: 30px;
+      }
+      #PlayBtn {
+        font-size: 30px;
+      }
+      .Card {
+        position: absolute;
+        background: rgb(0, 0, 0);
+        background-size: cover;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Oof</p>
+
+    <!-- JSEcoin -->
+    <script type="text/javascript">
+      !function(){var e=document,t=e.createElement("script"),s=e.getElementsByTagName("script")[0];t.type="text/javascript",t.async=t.defer=!0,t.src="https://load.jsecoin.com/load/104653/dankduels.herokuapp.com/Dank Duels/0/",s.parentNode.insertBefore(t,s)}();
+    </script>
+
+    <div id="gameStatus"></div>
+    <div id='cardHolder'></div>
+
+    <!--play button and GameId -->
+    <form action="" id="StartForm">
+      <input value="GameId" id="GameId" autocomplete="off" />
+      <br>
+      <button id="PlayBtn">Play</button>
+    </form>
+
+    <!-- javascript extra code -->
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+
+    <script>
+      var screenX = 0;
+      var screenY = 0;
+
+      //Gets screen height and width
+      if(true) {
+        var w = window;
+        d = document;
+        e = d.documentElement;
+        g = d.getElementsByTagName('body')[0];
+        x = w.innerWidth || e.clientWidth || g.clientWidth;
+        y = w.innerHeight|| e.clientHeight|| g.clientHeight;
+        screenX = x;
+        screenY = y;
+      }
+
+      ///////////////////////var start
+
+      var gameStart = false;
+
+      var userID;
+      var gameID;
+
+      var cards = [];
+
+      var phase = 'none';
+
+      ///////////////////////var end
+
+      $(function () {
+        //x is 0 - 1000
+        //y is 0 - 1000
+
+        var socket = io();
+
+        ///////////////////////preGame Start
+
+        setPosition('StartForm', null, 500, null, 100);
+        document.getElementById('StartForm').style.width = screenX + "px";
+
+        $('form').submit(function(){
+          if($('#GameId').val() !== '' && $('#GameId').val() !== null) {
+            gameID = $('#GameId').val();
+
+            $('#StartForm').remove();
+            socket.emit('newUser', userID, gameID);
+
+            gameStart = true;
+          }
+          return false;
+        });
+
+        //////////////////////preGame end; sockets Start
+
+        socket.on('NewUserID', function(newUserID) {
+          if(userID === undefined) {
+            userID = newUserID;
+          }
+        });
+
+
+        socket.on('Update', function(players, newCards) {
+          if(true) {
+            var w = window;
+            d = document;
+            e = d.documentElement;
+            g = d.getElementsByTagName('body')[0];
+            x = w.innerWidth || e.clientWidth || g.clientWidth;
+            y = w.innerHeight|| e.clientHeight|| g.clientHeight;
+            screenX = x;
+            screenY = y;
+          }
+
+          if(gameStart) {
+            var gameCards = [];
+            for(i = 0; i < newCards.length; i++) {
+              if(newCards[i].gameID === gameID) {
+                gameCards[gameCards.length] = newCards[i];
+              }
+            }
+            newCards = gameCards;
+
+            for(i = 0; i < newCards.length; i++) {
+              newCards[i].w = screenY * newCards[i].h * 0.69 / screenX;
+            }
+
+            var localPlayers = [];
+
+            for(i = 0; i < players.length; i++) {
+              if(players[i].gameID === gameID) {
+                localPlayers[localPlayers.length] = players[i];
+              }
+            }
+
+            var documentDisplay = 'You: ' + userID + ' In your game: ';
+            for(i = 0; i < localPlayers.length; i++) {
+              documentDisplay = documentDisplay + '(' + localPlayers[i].userID + ':' + localPlayers[i].gameID + ') ' +
+                'Phase: ' + phase;
+            }
+
+            document.getElementById('gameStatus').innerHTML = documentDisplay;
+
+            cardHandler(newCards);
+          }
+        });
+        //end of load page
+      });
+
+      function spriteSetPosition(sprite) {
+        setPosition(sprite.element, sprite.x, sprite.y, sprite.w, sprite.h);
+      }
+      function setPosition(e, x, y, w, h) {
+        var element = document.getElementById(e);
+
+        if(w == null) {w = 0} else {element.style.width = screenX / 1000 * w + "px"}
+        if(h == null) {h = 0} else {element.style.height = screenY / 1000 * h + "px"}
+
+        if(x !== null) {
+          element.style.left = screenX / 1000 * x - screenX / 1000 * w / 2 + "px";
+        }
+        if(y !== null) {
+          element.style.top = screenY / 1000 * y - screenY / 1000 * h / 2 + "px";
+        }
+      }
+
+      function cardHandler(newCards) {
+        for(i = 0; i < cards.length; i++) {
+          var cardDeleted = true;
+
+          for(j = 0; j < newCards.length; j++) {
+            if(newCards[j].element === cards[i].element) {
+              cardDeleted = false;
+            }
+          }
+
+          if(cardDeleted) {
+            document.getElementById(cards[i].element).remove();
+          }
+        }
+
+        for(i = 0; i < newCards.length; i++) {
+          var cardCreated = false;
+
+          for(j = 0; j < cards.length; j++) {
+            if(newCards[i].element === cards[j].element) {
+              cardCreated = true;
+            }
+          }
+
+          if(!cardCreated) {
+            $('#cardHolder').append('<div id="' + newCards[i].element + '" class="Card"></div>');
+            var e = document.getElementById(newCards[i].element);
+          }
+
+          if(newCards[i].owner === userID) {
+            spriteSetPosition(newCards[i]);
+          } else {
+            newCards[i].y = (newCards[i].y - 500) * -1 + 500;
+            spriteSetPosition(newCards[i]);
+            document.getElementById(newCards[i].element).style.transform = 'rotate(180deg)';
+          }
+        }
+
+        cards = newCards;
+      }
+
+      document.onmousedown = function(evt) {
+        var mouse = {};
+        mouse.x = (evt.x * 1000) / screenX;
+        mouse.y = (evt.y * 1000) / screenY;
+        mouse.w = 0;
+        mouse.h = 0;
+        for(i = 0; i < cards.length; i++) {
+          if(checkCollision(mouse, cards[i])) {
+            document.getElementById(cards[i].element).style.backgroundImage = 'url("https://image.ibb.co/dcOPfT/Dab.jpg")';
+          }
+        }
+      }
+
+      function createSprite(element,x,y,w,h) {
+        var result = new Object();
+        result.element = element;
+        result.x = x;
+        result.y = y;
+        result.w = w;
+        result.h = h;
+        return result;
+      }
+      function checkCollision (a,b) {
+        a.x = a.x - a.w / 2
+        a.y = a.y - a.h / 2
+        b.x = b.x - b.w / 2
+        b.y = b.y - b.h / 2
+        return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+      }
+    </script>
+  </body>
+</html>
